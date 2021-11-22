@@ -29,8 +29,6 @@ def beep():
 	BEEP_HZ = 300
 	winsound.Beep(BEEP_HZ, BEEP_MS)
 
-	
- 
 class TouchCallList:
 
 	def __init__(self, touchBiasArray):
@@ -120,20 +118,7 @@ class Method:
 				
 		return seq
 		
-#	def rows(self, startSeq, call):#
-		# seq = startSeq
-		# rs = [seq]
-		# for i, pn in enumerate(self.pnLead):
-		# 	seq = getNextSeq(pn, seq)
-		# 	rs.append(seq)
-		# seq = getNextSeq(getattr(self, call), seq)
-		# rs.append(seq)
-		# return rs
-		
-	#def fullLead(self, call):
-#		return self.lead + [getattr(self, call)]
-		
-	# pnStrToArr
+	# pnLead
 	# Convert pn string to array
 	# Inputs:
 	# 	pn (String) = place nottation in the form: x58x16x12x38x14x58x16x78
@@ -161,42 +146,12 @@ class Method:
 	
 		return list(map(int, pn))
 	
-#	def getRows(self, ss, pb, call):
-		
-#		seq = ss
-#		rows = [[1, seq]]
-#		for i, pn in enumerate(self.fullLead(call)):
-#			seq = getNextSeq(pn, seq)
-#			rows.append([i+2, seq])
-		
-#		return rows
-
-	# def nextPB(self, pb, call):
-	
-	# 	seq = getStartingSeq(pb)
-	# 	for pn in self.fullLead(call):
-	# 		seq = nextRow(pn, seq)
-
-	# 	return seq.find(str(pb)) + 1
 		
 	class Row:
 		def __init__(self, n, seq):
 			self.n = n
 			self.seq = seq
 			
-		#def colourPrint():
-		# to do
-		
-#	class LeadRows:
-#		def __init__(self, seq):
-#		
-#			self.startSeq = seq
-#			self.rows = [Method.Row(1, seq)]
-#			print(self.name)
-#			for i, pn in enumerate(Method.lead):
-#				seq = getNextSeq(pn, seq)
-#				rows.append(Method.Row(i+2, seq))
-		
 # printRow
 # print a formatted sequence with treble coloured red and working bell coloured blue
 # Inputs:
@@ -272,18 +227,20 @@ class Lead():
 		return self.rows[len(self.rows)-1]
 
 
+	# practice a lead
+	# errorCount to ensure we can keep track of errrors between loops
+	# skipRowOne to avoid duplicating the first row in the lead, if multiple leads
 	def practice(self, errorCount, skipRowOne):
 		ec = errorCount
 		for i, row in enumerate(self.rows):
-			if skipRowOne:
-				if i == 0:
-					break
 			pos = row.pos()
 			if i > 0:
 				errorCount += waitForKey(expectedKey(pos, lastPos))
-			row.prnt(tc = self.touchCall, mc = self.methodCall)
 			lastPos = pos
-
+			if skipRowOne and i == 0:
+				continue
+			row.prnt(tc = self.touchCall, mc = self.methodCall)
+   
 		return ec
 
 
@@ -305,7 +262,7 @@ class Row():
 	# 	(optional) tc = touchCall
 	# 	(optional) mc = methodCall
 	def prnt(self, **kwargs):
-   
+
 		# unpack arguments 
 		tc = kwargs['tc'] if 'tc' in kwargs else ''
 		mc = kwargs['mc'] if 'mc' in kwargs else ''

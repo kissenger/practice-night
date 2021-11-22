@@ -7,7 +7,7 @@ import re
 from practicenight import *
 
 
-os.system('')
+os.system('') 
 
 # look for input arguments
 try:
@@ -47,6 +47,7 @@ touchCall = touchCalls.selectRandom()
 nextSeq = nextMethod.startingSeq(workingBell)
 lead = Lead(nextMethod, nextSeq, touchCall, methodCall)
 
+isFirstLead = False
 while True:
 	method = nextMethod
 	seq = nextSeq
@@ -55,7 +56,8 @@ while True:
 	touchCall = touchCalls.selectRandom()
 	lead = Lead(method, seq, touchCall, methodCall)
 	nextSeq = lead.lastRow().seq
-	errorCount = lead.practice(errorCount)
+	errorCount = lead.practice(errorCount, isFirstLead)
+	isFirstLead = True
 
 
 
