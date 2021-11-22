@@ -7,8 +7,6 @@ import re
 from practicenight import *
 
 
-
-
 os.system('')
 
 # look for input arguments
@@ -70,9 +68,10 @@ while True:
 	method = nextMethod
 	nextMethod = activeMethods[np.random.randint(0,len(activeMethods))]
 	call = np.random.choice(callOptions)
-	rows = method.rows(seq, call)
+	rows = method.Rows(seq, call)
 	seq = rows[-1]
 	
+	#for i, row in enumerate(rows):
 	for i, row in enumerate(rows):
 	
 		if i == 0: continue
