@@ -194,15 +194,24 @@ class Lead():
 
 		self.method  = kwargs['m'] if 'm' in kwargs else ''
 		self.startSeq = kwargs['s'] if 's' in kwargs else ''
-		self.touchList = kwargs['tl'] if 'tl' in kwargs else ''
-		self.methodList = kwargs['ml'] if 'ml' in kwargs else ''
 
-		self.nextMethod = self.methodList.selectRandom()
-		self.methodCall = self.nextMethod.name if self.nextMethod != self.method else ''
-		self.touchCall = self.touchList.selectRandom()
+		if 'tl' in kwargs:
+			self.touchList = kwargs['tl']
+			self.touchCall = self.touchList.selectRandom()
+		else:
+			self.touchCall = 'plain'
+   
+		if 'ml' in kwargs:
+			self.methodList = kwargs['ml']
+			self.nextMethod = self.methodList.selectRandom()
+			self.methodCall = self.nextMethod.name if self.nextMethod != self.method else ''
+		else:
+			self.methodCall = ''
+
 		self.length = self.method.leadLength
 		self.rows = self.rows()
 		self.lastSeq = self.lastRow().seq
+		self.endPlaceBell = self.lastRow().pos()
 
 	def rows(self):
 		seq = self.startSeq
@@ -264,10 +273,8 @@ class Lead():
 			lastPos = pos
 			if not firstLoop and i == 0:
 				continue
-			#errors.incrLine()
 			row.prnt(tc = self.touchCall, mc = self.methodCall)
 			errors.incrLine()
-			# errors.prnt()
 
 
 
@@ -373,4 +380,4 @@ class Row():
 	def pos(self):
 		for i, c in enumerate(self.seq):
 			if c not in ['1', '.']:
-				return i
+				return i + 1

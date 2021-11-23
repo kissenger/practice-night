@@ -16,7 +16,6 @@ except getopt.GetoptError:
 touchBias = None
 workingBell = np.random.randint(2,9)
 
-forceMethodChange = False
 for opt, arg in opts:
 	if opt in ("-m", "--methods"):
 		methodsString = arg
