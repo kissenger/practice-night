@@ -2,10 +2,7 @@
 import os
 import sys, getopt
 import numpy as np
-import re
-#from practicenight import style, beep, pnStrToArr, getStartingSeq
 from practicenight import *
-
 
 os.system('') 
 
@@ -22,7 +19,7 @@ workingBell = np.random.randint(2,9)
 forceMethodChange = False
 for opt, arg in opts:
 	if opt in ("-m", "--methods"):
-		methodsString = re.split('(?=[A-Z])', arg)
+		methodsString = arg
 	if opt in ("-b", "--workingBell`"):
 		workingBell = int(arg)
 	if opt in ("-t", "--touchOptions"):
@@ -30,34 +27,30 @@ for opt, arg in opts:
 		if sum(touchBias) != 100:
 			print("WARNING: Touch biases must add up to 100 - ignoring input")
 		else:
-			touchCalls = TouchCallList(touchBias)
+			touchList = CallList(touchBias)
 
-touchCalls = TouchCallList(touchBias)
-methods = MethodsList(methodsString)
-errorCount = 0
+touchList = CallList(touchBias)
+methodsList = MethodsList(methodsString)
+errors = ErrorCounter()
+isFirstLead = True
 
-# nextSeq = getStartingSeq(workingBell)
-nextMethod = methods.selectRandom()
-
-# Tell user the starting bell and method
-print('Starting Bell: ' + str(workingBell))
-print('Starting Method: ' + nextMethod.name)
-methodCall = nextMethod.name if nextMethod != nextMethod else None
-touchCall = touchCalls.selectRandom()
-nextSeq = nextMethod.startingSeq(workingBell)
-lead = Lead(nextMethod, nextSeq, touchCall, methodCall)
-
-isFirstLead = False
 while True:
-	method = nextMethod
-	seq = nextSeq
-	nextMethod = methods.selectRandom()
-	methodCall = nextMethod.name if method != nextMethod else None
-	touchCall = touchCalls.selectRandom()
-	lead = Lead(method, seq, touchCall, methodCall)
-	nextSeq = lead.lastRow().seq
-	errorCount = lead.practice(errorCount, isFirstLead)
-	isFirstLead = True
+
+	if isFirstLead:
+		method = methodsList.selectRandom()
+		seq = method.startingSeq(workingBell)  
+		print('========================')
+		print('Selected Methods: ' + methodsList.outputString)
+		print('Starting Method: ' + method.name)
+		print('Bell: ' + str(workingBell))
+		print('========================')
+  
+	lead = Lead(m = method, s = seq, tl = touchList, ml = methodsList)
+	lead.practice(errors, isFirstLead)	
+
+	seq = lead.lastSeq
+	method = lead.nextMethod
+	isFirstLead = False
 
 
 

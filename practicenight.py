@@ -1,10 +1,9 @@
 import msvcrt
 import sys
-from typing import Sequence
 import winsound
 import numpy as np
-import os
 from methodslib import methodsLib
+import re
 
 optAnnotations = False
 
@@ -23,13 +22,17 @@ class style():
 	WHITE = '\033[37m'
 	GREY =  '\033[90m'
 	
-	
 def beep():
 	BEEP_MS = 200
 	BEEP_HZ = 300
 	winsound.Beep(BEEP_HZ, BEEP_MS)
 
-class TouchCallList:
+
+# CallList
+# Class to manage selection of 'bob' and 'single' calls
+# Input: biases (Array): 3 element array defining the % plain, bob and single calls
+# Note: biases must sum to 100, or the input is ignored and you will get a plain course
+class CallList:
 
 	def __init__(self, touchBiasArray):
 		if touchBiasArray:
@@ -39,38 +42,74 @@ class TouchCallList:
 			self.touchCallList = [item for sublist in [plain, bob, single] for item in sublist]
 		else:
 			self.touchCallList = ['plain']
-  
+
 	def selectRandom(self):
 		return np.random.choice(self.touchCallList)
-  
+
+
+
+# MethodsList
+# Class to manage the methods requested by the user
+# Input:  methodString (String): string defining the requested methods as abbreviations eg 'CYN'
 class MethodsList:
-	
+
 	def __init__(self, methodsString):
-		self.methodsArray = getMethods(methodsString)
+		self.methodsArray = self.getMethods(methodsString)
+		self.outputString = self.outputString()
 		self.nMethods = len(self.methodsArray)
 
-# selectRandom - selects a methods from methods array at random
 	def selectRandom(self):
 		return self.methodsArray[np.random.randint(0, self.nMethods)]
 
-# getActiveMethods
-# Inputs:
-#		rms (Array) = requested method string - array of characters defining the short names of methods eg ['B', 'N', 'C']
-# Outputs:
-# 	ams (Array) = array of methods from methodsLib
-def getMethods(rms):
-	ams = []
-	for m in rms:
-		isFound = False
-		for mdb in methodsLib:
-			if mdb['abbr'] == m:
-				ams.append(Method(mdb['name'], mdb['notation'], mdb['plain'], mdb['bob'], mdb['single'], mdb['stage']))
-				isFound = True
-				break
-		if not isFound:
-			print('WARNING: Could not find method with abbreviation ' + m) 
-	return ams
+	# getActiveMethods
+	# Input:   str (String) = string defining the requested methods as abbreviations eg 'CYStN'
+	# Returns: ams (Array) = array of Method instances from methodsLib
+	def getMethods(self, str):
+		strArr = re.split('(?=[A-Z])', str)[1:]
+		ams = []
+		for c in strArr:
+			isFound = False
+			for mdb in methodsLib:
+				if mdb['abbr'] == c:
+					ams.append(Method(mdb['name'], mdb['notation'], mdb['plain'], mdb['bob'], mdb['single'], mdb['stage']))
+					isFound = True
+					break
+			if not isFound:
+				print('WARNING: Could not find method with abbreviation ' + c) 
+		return ams
 
+	def outputString(self):
+		na = ''
+		for method in self.methodsArray:
+			na += method.name + ', '
+		return na[:-2]
+
+
+
+# ErrorCounter
+# Class to manage number of input errors across practiced leads
+class ErrorCounter():
+	
+	def __init__(self):
+		self.errorCount = 0
+		self.nLines = 0
+
+	def incrErr(self):
+		self.errorCount += 1
+		self.prnt()
+	
+	def incrLine(self):
+		self.nLines += 1
+		self.prnt()
+
+	def prnt(self):
+		sr = 100 if self.nLines == 0 else (1 - self.errorCount / self.nLines) * 100
+		print(f'Errors: {self.errorCount:d}, Rows: {self.nLines:d}, Success rate: {sr:.1f}%', end = '      \r')
+
+
+
+# Method
+# Class to manage the unpacking of a method via its place notation
 class Method:
 
 	def __init__(self, name, notation, plain, bob, single, stage):
@@ -83,46 +122,22 @@ class Method:
 		self.single = self.pnLeadEnd(single)
 		self.nBells = self.nBells(self.stage)
 		self.leadLength = self.leadLength()
-		#self.rows = self.rows()
 
-	def fullLead(self, call):
+	# pnFullLead
+	# Combine the PN for standard lead with the desired lead-end
+	def pnFullLead(self, call):
 		return self.pnLead + [getattr(self, call)]
- 
-	def isLeadEnd(self, rowNumb):
-		return rowNumb == self.leadLength - 1
-		
-	def nBells(self, stage):
-		if stage == 'major': return 8
-		if stage == 'triples': return 7
-		if stage == 'minor': return 6
-		if stage == 'doubles': return 5
-		
-	def leadLength(self):
-		return len(self.pnLead) + 1
 
-# getStartingSeq
-# Returns string of charatcers defining the starting sequence of bells
-# Only the treble and working bell are represented as numbers, other bells as "."	
-# Inputs:
-# 	wb (Integer) = working bell
-# Outputs: 
-# 	seq (String) = starting seqence of bells 
-	def startingSeq(self, wb):
-	
-		seq = '1'
-		for i in range(2, 9):
-			if i == wb:
-				seq += str(i)
-			else:
-				seq += '.'
-				
-		return seq
-		
+	# pnLeadEnd
+	# Converts the lead-end place notation into an array of integers, eg '12' --> [1, 2]
+	def pnLeadEnd(self, pn):
+		return list(map(int, pn))
+
 	# pnLead
-	# Convert pn string to array
-	# Inputs:
-	# 	pn (String) = place nottation in the form: x58x16x12x38x14x58x16x78
-	# 		**Note pn should exclude the comma and leadhead change	
+	# Converts pn string to array
+	# Input: pn (String) = place notation in the form: x58x16x12x38x14x58x16x78
+	# Output: (Array) = place notation in array form: [[],[5,8]...]
+	# **Note pn should exclude the comma and leadhead change	
 	def pnLead(self):
 	
 		pna = []
@@ -142,25 +157,161 @@ class Method:
 		
 		return pna
 		
-	def pnLeadEnd(self, pn):
-	
-		return list(map(int, pn))
-	
+	# def isLeadEnd(self, rowNumb):
+	# 	return rowNumb == self.leadLength - 1
 		
-	class Row:
-		def __init__(self, n, seq):
-			self.n = n
-			self.seq = seq
+	def nBells(self, stage):
+		if stage == 'major': return 8
+		if stage == 'triples': return 7
+		if stage == 'minor': return 6
+		if stage == 'doubles': return 5
+		
+	def leadLength(self):
+		return len(self.pnLead) + 1
+
+# startingSeq
+# Returns string of charatcers defining the starting sequence of bells
+# Inputs:  wb (Integer) = working bell
+# Outputs: seq (String) = starting seqence of bells in the form '1...5...'
+	def startingSeq(self, wb):
+
+		seq = '1'
+		for i in range(2, 9):
+			if i == wb:
+				seq += str(i)
+			else:
+				seq += '.'
+				
+		return seq
+		
+
+
+
+
+class Lead():
+
+	def __init__(self, **kwargs):
+
+		self.method  = kwargs['m'] if 'm' in kwargs else ''
+		self.startSeq = kwargs['s'] if 's' in kwargs else ''
+		self.touchList = kwargs['tl'] if 'tl' in kwargs else ''
+		self.methodList = kwargs['ml'] if 'ml' in kwargs else ''
+
+		self.nextMethod = self.methodList.selectRandom()
+		self.methodCall = self.nextMethod.name if self.nextMethod != self.method else ''
+		self.touchCall = self.touchList.selectRandom()
+		self.length = self.method.leadLength
+		self.rows = self.rows()
+		self.lastSeq = self.lastRow().seq
+
+	def rows(self):
+		seq = self.startSeq
+		fullLeadPN = self.method.pnFullLead(self.touchCall)
+		row = Row(seq, 0, self.length)
+		rws = [row]
+		for i, pn in enumerate(fullLeadPN):
+			seq = row.nextSeq(pn)
+			row = Row(seq, i+1, self.length)
+			rws.append(row)
+		return rws
+
+	def lastRow(self):
+		return self.rows[len(self.rows)-1]
+
+	# Practice a Lead
+	# Input: 	errors (ErrorCounter) - Instance of ErrorCounter class
+	# Input:	firstLoop (Boolean) - False will suppress printing of first row - required for multiple leads
+	def practice(self, errors, firstLoop):
+
+		# __expectedKey
+		# Returns: the input keystroke expected based on the direction of movement of the working bell
+		def __expectedKey(pos, lastPos):
+			if pos > lastPos:
+				return keys.RIGHT
+			elif pos < lastPos:
+				return keys.LEFT
+			else:
+				return keys.DOWN
+
+		# __waitForKey
+		# Waits for user input and returns only when the expected keystroke is recieved
+		# Returns: (Integer) - the number of input errors before correct input
+		def __waitForKey(eks):
+
+			isErr = False
+			while True:
 			
-# printRow
-# print a formatted sequence with treble coloured red and working bell coloured blue
-# Inputs:
-#   nl (Integer) = line number
-# 	s (String) = sequence of bells
-#   le (Boolean) = True if this is the last row in the lead end (underlined)
-#   wb (Integer) = working bell
-#   call (String) = string to print after row (eg call for touch or change of method)
-# def printRow(nl, s, wb, le, call):
+				ks = ord(msvcrt.getch())
+				if ks == keys.ARROWS:
+					ks = ord(msvcrt.getch())
+					if ks == eks:
+						return 
+					else:
+						if not isErr: errors.incrErr()
+						isErr = True
+						beep()
+				
+				elif ks == keys.CTRL_C:
+					beep()
+					print(style.RESET)
+					print("SESSION CANCELLED")
+					sys.exit()							
+
+		for i, row in enumerate(self.rows):
+			pos = row.pos()
+			if i > 0:
+				__waitForKey(__expectedKey(pos, lastPos))
+			lastPos = pos
+			if not firstLoop and i == 0:
+				continue
+			#errors.incrLine()
+			row.prnt(tc = self.touchCall, mc = self.methodCall)
+			errors.incrLine()
+			# errors.prnt()
+
+
+
+
+class Row():
+  
+	def __init__(self, seq, rowNumber, leadLength):
+		self.seq = seq 
+		self.rowNumber = rowNumber
+		self.leadLength = leadLength
+		self.touchCallRow = self.leadLength - 3
+		self.methodCallRow = self.leadLength - 2
+		self.annotationRow = self.leadLength 
+		self.isLeadEnd = rowNumber == leadLength - 1
+		self.stroke = 'BS' if rowNumber % 2 == 0 else 'HS'
+
+	# prnt
+	# Input: (optional) tc = touchCall
+	# Input: (optional) mc = methodCall
+	def prnt(self, **kwargs):
+
+		tc = kwargs['tc'] if 'tc' in kwargs else ''
+		mc = kwargs['mc'] if 'mc' in kwargs else ''
+
+		outp = ''
+		pad = ' '
+		outp += style.GREY + self.stroke + '   '
+		if self.isLeadEnd and optAnnotations:
+			outp += style.UNDERLINE
+		
+		for c in self.seq:
+			if c == ".":
+				outp += style.WHITE + c + pad
+			elif c == "1":
+				outp += style.RED + c + pad
+			else:
+				outp += style.BLUE + c + pad
+
+		outp += style.RESET + self.callString(tc, mc)
+		print(outp + '                              ')
+
+
+
+
 	
 # 	print('\033[K', end='')
 
@@ -189,103 +340,10 @@ class Method:
 # 	print(style.RESET + call)
 
 
-def printStats(ec, n):
-	#print('Errors: ' + str(ec) + ', Rows: ' + str(n) + ', Success rate: ' + str(100-ec/n*100), end = '\r')
-	if n == 0:
-		sr = 100
-	else:
-		sr = (1-ec/n)*100
-		
-	print(f'Errors: {ec:d}, Rows: {n:d}, Success rate: {sr:.1f}%', end = '\r')
-	
-
-
-class Lead():
-
-	def __init__(self, method, startSeq, touchCall, methodCall):
-		self.method = method
-		self.startSeq = startSeq
-		self.touchCall = touchCall
-		self.length = method.leadLength
-		self.methodCall = methodCall
-		self.rows = self.rows()
-
-
-	def rows(self):
-		seq = self.startSeq
-		fullLeadPN = self.method.fullLead(self.touchCall)
-		row = Row(seq, 0, self.length)
-		rws = [row]
-		for i, pn in enumerate(fullLeadPN):
-			seq = row.nextSeq(pn)
-			row = Row(seq, i+1, self.length)
-			rws.append(row)
-		return rws
-
-
-	def lastRow(self):
-		return self.rows[len(self.rows)-1]
-
-
-	# practice a lead
-	# errorCount to ensure we can keep track of errrors between loops
-	# skipRowOne to avoid duplicating the first row in the lead, if multiple leads
-	def practice(self, errorCount, skipRowOne):
-		ec = errorCount
-		for i, row in enumerate(self.rows):
-			pos = row.pos()
-			if i > 0:
-				errorCount += waitForKey(expectedKey(pos, lastPos))
-			lastPos = pos
-			if skipRowOne and i == 0:
-				continue
-			row.prnt(tc = self.touchCall, mc = self.methodCall)
-   
-		return ec
-
-
-	
-class Row():
-  
-	def __init__(self, seq, rowNumber, leadLength):
-		self.seq = seq 
-		self.rowNumber = rowNumber
-		self.leadLength = leadLength
-		self.touchCallRow = self.leadLength - 3
-		self.methodCallRow = self.leadLength - 2
-		self.annotationRow = self.leadLength 
-		self.isLeadEnd = rowNumber == leadLength - 1
-
-	# prnt
-	# print a formatted row to shell
-	# Inputs:
-	# 	(optional) tc = touchCall
-	# 	(optional) mc = methodCall
-	def prnt(self, **kwargs):
-
-		# unpack arguments 
-		tc = kwargs['tc'] if 'tc' in kwargs else ''
-		mc = kwargs['mc'] if 'mc' in kwargs else ''
-
-		outp = ''
-		pad = ' '
-
-		if self.isLeadEnd and optAnnotations:
-			outp += style.UNDERLINE
-		
-		for c in self.seq:
-			if c == ".":
-				outp += style.WHITE + c + pad
-			elif c == "1":
-				outp += style.RED + c + pad
-			else:
-				outp += style.BLUE + c + pad
-
-		outp += style.RESET + self.callString(tc, mc)
-		print(outp)
-
-# tc (String) = touchCall - plain bob or single
-# mc (String) = methodCall - method at next lead end
+	# callString
+	# Returns a string to print to console at the appropriate point, warning of method change or touch call
+	# tc (String) = touchCall - plain bob or single
+	# mc (String) = methodCall - method at next lead end
 	def callString(self, tc, mc):
 		outp = ''
 		if self.rowNumber == self.touchCallRow:
@@ -295,12 +353,9 @@ class Row():
 			if mc:
 				outp += mc.upper() + '!'
 		return outp
-		#if self.rowNumber == self.annotationRow:
-		#	if optAnnotations:
-		#		outp += '(' + str(np) + 'PB ' + nm.name + ") "
-  
 
-
+	# nextSeq
+	# Returns: next sequence based on transformation of the current row based on the provided place notation (as array)
 	def nextSeq(self, pn):
 		nr = ''
 		j = 1
@@ -313,61 +368,9 @@ class Row():
 			j += 1
 		return nr
 
+	# pos	
+	# Returns: postion of the working bell in the current row
 	def pos(self):
 		for i, c in enumerate(self.seq):
 			if c not in ['1', '.']:
 				return i
-
-def expectedKey(pos, lastPos):
-	if pos > lastPos:
-		return keys.RIGHT
-	elif pos < lastPos:
-		return keys.LEFT
-	else:
-		return keys.DOWN
-
-def waitForKey(eks):
-
-	ne = 0
-	
-	while True:
-	
-		ks = ord(msvcrt.getch())
-		
-		if ks == keys.ARROWS:
-			ks = ord(msvcrt.getch())
-			if ks == eks:
-				return ne
-			else:
-				ne = 1
-				#printStatsLine(ne, nr)
-				beep()
-		
-		elif ks == keys.CTRL_C:
-			beep()
-			print(style.RESET)
-			print("SESSION CANCELLED")
-			sys.exit()
-			
-# getCall
-# returns a call (bob, single, change of method, or PB reminder)
-# Inputs:
-# 	r (Integer) = number of current row
-#   lel (Integer) = length of lead end (number of rows per lead)
-#   cm (method) = current method
-#   nm (method) = next method
-#   tc (touch call) = bob, single or plain
-
-
-		
-#		call=''
-#		if row == len(pna) - 3:
-#			if nextMethod != method:
-#				call = "    " + nextMethod.name.upper() + "! "
-#		elif row == len(pna) - 4:		
-#			if touchCall in ['bob', 'single']:
-#				call = "    " + touchCall.upper() + "! "
-#		elif row == len(pna) - 1:
-#			call = "    (" + str(nextPos) + "PB " + nextMethod.name + ") "
-#		else:
-#			call = ""		
