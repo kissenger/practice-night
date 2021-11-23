@@ -8,9 +8,9 @@ os.system('')
 
 # look for input arguments
 try:
-	opts, args = getopt.getopt(sys.argv[1:],"m:b:t:f:",["methods=","workingBell=","touchOptions="])
+	opts, args = getopt.getopt(sys.argv[1:],"m:b:t:o:",["methods=","workingBell=","touchOptions=","options="])
 except getopt.GetoptError:
-	print('practice.py -m <methods> -b <workingBell> -t <touchOptions>')
+	print('practice.py -m <methods> -b <workingBell> -t <touchOptions> -o <options>')
 	sys.exit(2)
  
 touchBias = None

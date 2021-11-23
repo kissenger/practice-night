@@ -6,6 +6,7 @@ from methodslib import methodsLib
 import re
 
 optAnnotations = False
+optShowTreble = False
 
 class keys():
 	ARROWS = 224
@@ -174,11 +175,27 @@ class Method:
 # Inputs:  wb (Integer) = working bell
 # Outputs: seq (String) = starting seqence of bells in the form '1...5...'
 	def startingSeq(self, wb):
-
-		seq = '1'
+   
+		# coursingOrder = [7,5,3,2,4,6,8]
+		# indx = coursingOrder.index(wb)
+		# if indx == 0:
+		# 	beforeBell = coursingOrder[-1]
+		# 	afterBell = coursingOrder[1]
+		# elif indx == len(coursingOrder)-1:
+		# 	beforeBell = coursingOrder[-2]
+		# 	afterBell = coursingOrder[0]
+		# else:
+		# 	beforeBell = coursingOrder[indx-1]
+		# 	afterBell = coursingOrder[indx+1]
+		seq = '1' if optShowTreble else '.'
+			
 		for i in range(2, 9):
 			if i == wb:
 				seq += str(i)
+			# elif i == beforeBell:
+			# 	seq += 'B'
+			# elif i == afterBell:
+			# 	seq += 'A'
 			else:
 				seq += '.'
 				
@@ -302,11 +319,12 @@ class Row():
 		outp = ''
 		pad = ' '
 		outp += style.GREY + self.stroke + '   '
+
 		if self.isLeadEnd and optAnnotations:
 			outp += style.UNDERLINE
 		
 		for c in self.seq:
-			if c == ".":
+			if c in ('.', 'B', 'A'):
 				outp += style.WHITE + c + pad
 			elif c == "1":
 				outp += style.RED + c + pad
@@ -316,35 +334,6 @@ class Row():
 		outp += style.RESET + self.callString(tc, mc)
 		print(outp + '                              ')
 
-
-
-
-	
-# 	print('\033[K', end='')
-
-# 	if nl % 2 == 0:
-# 		backOrHand = 'BS'
-# 	else:
-# 		backOrHand = 'HS'
-  
-# 	print(style.GREY + '[' + str(nl).zfill(5) + '] ' + backOrHand + '   ', end = '')
-	
-# 	for c in s:
-		
-# 		if optUnderlineLeadend:
-# 			if le:
-# 				print(style.UNDERLINE, end = '')
-# 			else:
-# 				print(style.RESET, end = '')
-			
-# 		if c == "1":
-# 			print(style.RED + "1", end = ' ')
-# 		elif c == str(wb):
-# 			print(style.BLUE + str(wb), end = ' ')
-# 		else:
-# 			print(style.WHITE + c, end = ' ')
-	
-# 	print(style.RESET + call)
 
 
 	# callString
@@ -379,5 +368,5 @@ class Row():
 	# Returns: postion of the working bell in the current row
 	def pos(self):
 		for i, c in enumerate(self.seq):
-			if c not in ['1', '.']:
+			if c not in ['1', '.', 'A', 'B']:
 				return i + 1

@@ -8,7 +8,8 @@ methodsLib = [
 	{'name': 'Yorkshire', 'abbr': 'Y', 'notation': 'x38x14x58x16x12x38x14x78', 'plain': '12', 'bob': '14', 'single': '1234', 'stage': 'major', 'clss': 'surprise'},	
 	{'name': 'Pudsey', 'abbr': 'P', 'notation': 'x58x16x12x38x14x58x16x78', 'plain': '12', 'bob': '14', 'single': '1234', 'stage': 'major', 'clss': 'surprise'},
 	{'name': 'Middlesex Bob', 'abbr': 'Mi', 'notation': '5.1.7.1.7.1.7', 'plain': '125', 'bob': '145', 'single': '12345', 'stage': 'major', 'clss': 'surprise'},
-	{'name': 'Steadman', 'abbr': 'St', 'notation': '3.1.7.3.1.3', 'plain': '1', 'bob': '145', 'single': '12345', 'stage': 'triples', 'clss': 'principle'} 	
+	{'name': 'Steadman', 'abbr': 'St', 'notation': '3.1.7.3.1.3', 'plain': '1', 'bob': '145', 'single': '12345', 'stage': 'triples', 'clss': 'principle'}, 	
+	{'name': 'Plain Bob', 'abbr': 'Pb', 'notation': 'x18x18x18x18', 'plain': '12', 'bob': '14', 'single': '1234', 'stage': 'major', 'clss': 'plain'} 	
 ]
 
 
