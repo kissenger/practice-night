@@ -10,21 +10,7 @@ methodsLib = [
 	{'name': 'Middlesex Bob', 'abbr': 'Mi', 'notation': '5.1.7.1.7.1.7,125', 'bob': '145', 'single': '12345', 'stage': 'major'},
 	{'name': 'Steadman', 'abbr': 'St', 'notation': '3.1.7.3.1.3,1', 'bob': '145', 'single': '12345', 'stage': 'triples'}, 	
 	{'name': 'Plain Bob', 'abbr': 'Pb', 'notation': 'x18x18x18x18,12', 'bob': '14', 'single': '1234', 'stage': 'major'}, 	
-	{'name': 'Grandsire', 'abbr': 'Gr', 'notation': '3,1.7.1.7.1.7.1', 'bob': '3.1', 'single': '3.123', 'stage': 'triples'}, 	
-	# {'name': 'Grandsire', 'abbr': 'Gr', 'notation': '3,1.7.1.7.1.7', 'bob': '3,1.7.1.7.1.7', 'single': '3.123', 'stage': 'triples'} 	
+	{'name': 'Grandsire', 'abbr': 'Gr', 'notation': '3,1.7.1.7.1.7.1', 'bob': '3.1', 'single': '3.123', 'stage': 'triples'}
 ]
 
 
-
-
-
-#methodsLib = [
-#	Method('Cambridge',    'C', 'x38x14x1258x36x14x58x16x78',       '12', '14', '1234'),
-#	Method('Bristol',      'B', 'x58x14.58x58.36.14x14.58x14x18',   '12', '14', '1234'),
-#	Method('Rutland',      'R', 'x38x14x58x16x14x38x34x18',         '12', '14', '1234'),
-#	Method('Lincolnshire', 'N', 'x38x14x58x16x14x58x36x78',         '12', '14', '1234'),
-#	Method('Superlative',  'S', 'x36x14x58x36x14x58x36x78',         '12', '14', '1234'),	
-#	Method('London',       'L', '38x38.14x12x38.14x14.58.16x16.58', '12', '14', '1234'),	
-#	Method('Yorkshire',    'Y', 'x38x14x58x16x12x38x14x78',         '12', '14', '1234'),	
-#	Method('Pudsey',       'P', 'x58x16x12x38x14x58x16x78',         '12', '14', '1234')
-#]

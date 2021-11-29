@@ -61,6 +61,7 @@ class MethodsList:
 		self.methodsArray = self.getMethods(methodsString)
 		self.outputString = self.outputString()
 		self.nMethods = len(self.methodsArray)
+		self.check()
 
 	def selectRandom(self):
 		return random.choice(self.methodsArray)
@@ -82,6 +83,17 @@ class MethodsList:
 			if not isFound:
 				print('WARNING: Could not find method with abbreviation ' + c)
 		return ams
+
+	def check(self):
+		
+		if all(x.stage==self.methodsArray[0].stage for x in self.methodsArray):
+			return	
+		else:
+			beep()
+			print('ERROR: All methods must have the same stage (number of bells)')
+			sys.exit()
+
+				
 
 	def outputString(self):
 		na = ''
@@ -128,8 +140,6 @@ class Method:
 		# self.callLocation = self.callLocation()
 		self.callOffset = max(len(self.__pnArray(bob)), len(self.__pnArray(single)))
 		
-
-	# def callLocation(self, bob, single):
 
 	# Replace the last elements in place array with elemtents in bob or single place string
 	def applyBobOrSingle(self, pn):
