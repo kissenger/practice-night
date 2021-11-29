@@ -1,12 +1,16 @@
 import msvcrt
 import sys
 import winsound
-import numpy as np
+# import numpy as np
+import random
 from methodslib import methodsLib
 import re
+import math
 
 optAnnotations = False
-optShowTreble = False
+optShowTreble = True
+optPrintOneRow = False
+optShowCourseBells = False
 
 class keys():
 	ARROWS = 224
@@ -14,7 +18,7 @@ class keys():
 	LEFT = 75
 	RIGHT = 77
 	CTRL_C = 3
-	
+
 class style():
 	BLUE = '\033[34m'
 	RED = '\033[31m'
@@ -22,7 +26,7 @@ class style():
 	RESET = '\033[0m'
 	WHITE = '\033[37m'
 	GREY =  '\033[90m'
-	
+
 def beep():
 	BEEP_MS = 200
 	BEEP_HZ = 300
@@ -37,15 +41,14 @@ class CallList:
 
 	def __init__(self, touchBiasArray):
 		if touchBiasArray:
-			plain = ['plain'] * touchBiasArray[0]
-			bob = ['bob'] * touchBiasArray[1]
-			single = ['single'] * touchBiasArray[2]
-			self.touchCallList = [item for sublist in [plain, bob, single] for item in sublist]
-		else:
-			self.touchCallList = ['plain']
+			self.touchCalls = 'p' * touchBiasArray[0] + 'b' * touchBiasArray[1] + 's' * touchBiasArray[2]
 
 	def selectRandom(self):
-		return np.random.choice(self.touchCallList)
+		try:
+			call = random.choice(self.touchCalls)
+			return 'plain' if call == 'p' else 'bob' if call == 'b' else 'single'
+		except:
+			return 'plain'
 
 
 
@@ -60,7 +63,8 @@ class MethodsList:
 		self.nMethods = len(self.methodsArray)
 
 	def selectRandom(self):
-		return self.methodsArray[np.random.randint(0, self.nMethods)]
+		return random.choice(self.methodsArray)
+		# return self.methodsArray[np.random.randint(0, self.nMethods)]
 
 	# getActiveMethods
 	# Input:   str (String) = string defining the requested methods as abbreviations eg 'CYStN'
@@ -72,11 +76,11 @@ class MethodsList:
 			isFound = False
 			for mdb in methodsLib:
 				if mdb['abbr'] == c:
-					ams.append(Method(mdb['name'], mdb['notation'], mdb['plain'], mdb['bob'], mdb['single'], mdb['stage']))
+					ams.append(Method(mdb['name'], mdb['notation'], mdb['bob'], mdb['single'], mdb['stage']))
 					isFound = True
 					break
 			if not isFound:
-				print('WARNING: Could not find method with abbreviation ' + c) 
+				print('WARNING: Could not find method with abbreviation ' + c)
 		return ams
 
 	def outputString(self):
@@ -90,7 +94,7 @@ class MethodsList:
 # ErrorCounter
 # Class to manage number of input errors across practiced leads
 class ErrorCounter():
-	
+
 	def __init__(self):
 		self.errorCount = 0
 		self.nLines = 0
@@ -98,7 +102,7 @@ class ErrorCounter():
 	def incrErr(self):
 		self.errorCount += 1
 		self.prnt()
-	
+
 	def incrLine(self):
 		self.nLines += 1
 		self.prnt()
@@ -113,94 +117,122 @@ class ErrorCounter():
 # Class to manage the unpacking of a method via its place notation
 class Method:
 
-	def __init__(self, name, notation, plain, bob, single, stage):
+	def __init__(self, name, notation, bob, single, stage):
 		self.name = name
 		self.stage = stage
-		self.notation = notation
-		self.pnLead = self.pnLead()
-		self.plain = self.pnLeadEnd(plain)
-		self.bob = self.pnLeadEnd(bob)
-		self.single = self.pnLeadEnd(single)
+		self.plain = self.__pnArray(notation)
+		self.bob = self.applyBobOrSingle(bob)
+		self.single = self.applyBobOrSingle(single)
 		self.nBells = self.nBells(self.stage)
 		self.leadLength = self.leadLength()
+		# self.callLocation = self.callLocation()
+		self.callOffset = max(len(self.__pnArray(bob)), len(self.__pnArray(single)))
+		
+
+	# def callLocation(self, bob, single):
+
+	# Replace the last elements in place array with elemtents in bob or single place string
+	def applyBobOrSingle(self, pn):
+		pna = self.__pnArray(pn)
+		return self.plain[:-len(pna)] + pna
 
 	# pnFullLead
 	# Combine the PN for standard lead with the desired lead-end
-	def pnFullLead(self, call):
-		return self.pnLead + [getattr(self, call)]
+	# def pnFullLead(self, call):
+	# 	return self.pnLead + [getattr(self, call)]
 
 	# pnLeadEnd
 	# Converts the lead-end place notation into an array of integers, eg '12' --> [1, 2]
-	def pnLeadEnd(self, pn):
-		return list(map(int, pn))
+	# def pnLeadEnd(self, pn):
+	# 	return list(map(int, pn))
 
-	# pnLead
+	# pnArray
 	# Converts pn string to array
 	# Input: pn (String) = place notation in the form: x58x16x12x38x14x58x16x78
 	# Output: (Array) = place notation in array form: [[],[5,8]...]
-	# **Note pn should exclude the comma and leadhead change	
-	def pnLead(self):
-	
-		pna = []
-		numbs = []
-		for char in self.notation:
-			
-			if char in ["x", "."]:
-				if len(numbs) > 0: pna.append(numbs)
-				if char == "x": pna.append([])
-				numbs = []
-				
-			elif char.isdigit():
-				numbs.append(int(char))
-			
-		pna.append(numbs)
-		pna.extend(pna[-2::-1])
-		
-		return pna
-		
-	# def isLeadEnd(self, rowNumb):
-	# 	return rowNumb == self.leadLength - 1
-		
+	# **Note pn should exclude the comma and leadhead change
+	def __pnArray(self, pn):
+
+		# Private function applyPal.... - does what it says on the tin
+		def __applyPalendromicSymmetry(arr):
+			arr.extend(arr[-2::-1])
+			return arr
+
+		# Private function notationT.... - converts string based place notation to an array
+		def __notationToArray(pn):
+
+			numbs = []
+			pna = []
+
+			for char in pn:
+
+				if char in ['x', '.']:
+					if len(numbs) > 0: pna.append(numbs)
+					if char == 'x': pna.append([])
+					numbs = []
+
+				elif char.isdigit():
+					numbs.append(int(char))
+
+			pna.append(numbs)
+
+			return pna
+
+		# main routine
+		parts = pn.split(',')
+		outArr = []
+
+		for part in parts:
+			arr = __notationToArray(part)
+			if len(part) > 5:
+				arr = __applyPalendromicSymmetry(arr)
+			outArr.extend(arr)
+
+		return outArr
+
 	def nBells(self, stage):
 		if stage == 'major': return 8
 		if stage == 'triples': return 7
 		if stage == 'minor': return 6
 		if stage == 'doubles': return 5
-		
+
 	def leadLength(self):
-		return len(self.pnLead) + 1
+		return len(self.plain) + 1
 
 # startingSeq
 # Returns string of charatcers defining the starting sequence of bells
 # Inputs:  wb (Integer) = working bell
 # Outputs: seq (String) = starting seqence of bells in the form '1...5...'
 	def startingSeq(self, wb):
-   
-		# coursingOrder = [7,5,3,2,4,6,8]
-		# indx = coursingOrder.index(wb)
-		# if indx == 0:
-		# 	beforeBell = coursingOrder[-1]
-		# 	afterBell = coursingOrder[1]
-		# elif indx == len(coursingOrder)-1:
-		# 	beforeBell = coursingOrder[-2]
-		# 	afterBell = coursingOrder[0]
-		# else:
-		# 	beforeBell = coursingOrder[indx-1]
-		# 	afterBell = coursingOrder[indx+1]
+
+		beforeBell = 0
+		afterBell = 0
+		if optShowCourseBells:
+			coursingOrder = [7,5,3,2,4,6,8]
+			indx = coursingOrder.index(wb)
+			if indx == 0:
+				beforeBell = coursingOrder[-1]
+				afterBell = coursingOrder[1]
+			elif indx == len(coursingOrder)-1:
+				beforeBell = coursingOrder[-2]
+				afterBell = coursingOrder[0]
+			else:
+				beforeBell = coursingOrder[indx-1]
+				afterBell = coursingOrder[indx+1]
+
 		seq = '1' if optShowTreble else '.'
-			
-		for i in range(2, 9):
+
+		for i in range(2, self.nBells + 1):
 			if i == wb:
 				seq += str(i)
-			# elif i == beforeBell:
-			# 	seq += 'B'
-			# elif i == afterBell:
-			# 	seq += 'A'
+			elif i == beforeBell:
+				seq += 'B'
+			elif i == afterBell:
+				seq += 'A'
 			else:
 				seq += '.'
-				
+
 		return seq
-		
 
 
 
@@ -212,12 +244,14 @@ class Lead():
 		self.method  = kwargs['m'] if 'm' in kwargs else ''
 		self.startSeq = kwargs['s'] if 's' in kwargs else ''
 
+		# tl = touchList
 		if 'tl' in kwargs:
 			self.touchList = kwargs['tl']
 			self.touchCall = self.touchList.selectRandom()
 		else:
-			self.touchCall = 'plain'
-   
+			self.touchCall = 'p'
+
+		# ml = methodList
 		if 'ml' in kwargs:
 			self.methodList = kwargs['ml']
 			self.nextMethod = self.methodList.selectRandom()
@@ -232,12 +266,12 @@ class Lead():
 
 	def rows(self):
 		seq = self.startSeq
-		fullLeadPN = self.method.pnFullLead(self.touchCall)
-		row = Row(seq, 0, self.length)
+		pnArr =  getattr(self.method, self.touchCall)
+		row = Row(seq, 0, self.method)
 		rws = [row]
-		for i, pn in enumerate(fullLeadPN):
+		for i, pn in enumerate(pnArr):
 			seq = row.nextSeq(pn)
-			row = Row(seq, i+1, self.length)
+			row = Row(seq, i+1, self.method)
 			rws.append(row)
 		return rws
 
@@ -266,25 +300,26 @@ class Lead():
 
 			isErr = False
 			while True:
-			
+
 				ks = ord(msvcrt.getch())
 				if ks == keys.ARROWS:
 					ks = ord(msvcrt.getch())
 					if ks == eks:
-						return 
+						return
 					else:
 						if not isErr: errors.incrErr()
 						isErr = True
 						beep()
-				
+
 				elif ks == keys.CTRL_C:
 					beep()
 					print(style.RESET)
 					print("SESSION CANCELLED")
-					sys.exit()							
+					sys.exit()
 
 		for i, row in enumerate(self.rows):
 			pos = row.pos()
+			# print(pos)
 			if i > 0:
 				__waitForKey(__expectedKey(pos, lastPos))
 			lastPos = pos
@@ -297,15 +332,15 @@ class Lead():
 
 
 class Row():
-  
-	def __init__(self, seq, rowNumber, leadLength):
-		self.seq = seq 
+
+	def __init__(self, seq, rowNumber, method):
+		self.seq = seq
 		self.rowNumber = rowNumber
-		self.leadLength = leadLength
-		self.touchCallRow = self.leadLength - 3
-		self.methodCallRow = self.leadLength - 2
-		self.annotationRow = self.leadLength 
-		self.isLeadEnd = rowNumber == leadLength - 1
+		self.leadLength = method.leadLength
+		self.touchCallRow = self.leadLength - method.callOffset - 2
+		self.methodCallRow = self.touchCallRow + 1
+		self.annotationRow = self.leadLength
+		self.isLeadEnd = rowNumber == self.leadLength - 1
 		self.stroke = 'BS' if rowNumber % 2 == 0 else 'HS'
 
 	# prnt
@@ -322,7 +357,7 @@ class Row():
 
 		if self.isLeadEnd and optAnnotations:
 			outp += style.UNDERLINE
-		
+
 		for c in self.seq:
 			if c in ('.', 'B', 'A'):
 				outp += style.WHITE + c + pad
@@ -332,6 +367,8 @@ class Row():
 				outp += style.BLUE + c + pad
 
 		outp += style.RESET + self.callString(tc, mc)
+		if optPrintOneRow:
+			print("\033[F\033[J", end="")
 		print(outp + '                              ')
 
 
@@ -364,9 +401,10 @@ class Row():
 			j += 1
 		return nr
 
-	# pos	
+	# pos
 	# Returns: postion of the working bell in the current row
 	def pos(self):
+		# print(self.seq)
 		for i, c in enumerate(self.seq):
 			if c not in ['1', '.', 'A', 'B']:
 				return i + 1

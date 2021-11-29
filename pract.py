@@ -25,8 +25,8 @@ for opt, arg in opts:
 		touchBias = list(map(int, arg.split(',')))
 		if sum(touchBias) != 100:
 			print("WARNING: Touch biases must add up to 100 - ignoring input")
-		else:
-			touchList = CallList(touchBias)
+		# else:
+			# touchList = CallList(touchBias)
 
 touchList = CallList(touchBias)
 methodsList = MethodsList(methodsString)
@@ -37,7 +37,8 @@ while True:
 
 	if isFirstLead:
 		method = methodsList.selectRandom()
-		seq = method.startingSeq(workingBell)  
+		seq = method.startingSeq(workingBell)
+		
 		print('========================')
 		print('Selected Methods: ' + methodsList.outputString)
 		print('Starting Method: ' + method.name)
