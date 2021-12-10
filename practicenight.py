@@ -1,16 +1,17 @@
 import msvcrt
 import sys
 import winsound
-# import numpy as np
+import numpy as np
 import random
 from methodslib import methodsLib
 import re
-import math
 
-optAnnotations = False
-optShowTreble = True
-optPrintOneRow = False
-optShowCourseBells = False
+class options():
+  pass
+	# showLeadend = False
+	# showTreble = True
+	# printOneRow = False
+	# showCourseBells = False
 
 class keys():
 	ARROWS = 224
@@ -32,6 +33,10 @@ def beep():
 	BEEP_HZ = 300
 	winsound.Beep(BEEP_HZ, BEEP_MS)
 
+def printError(msgString):
+	beep()
+	print(msgString)
+	sys.exit()
 
 # CallList
 # Class to manage selection of 'bob' and 'single' calls
@@ -39,17 +44,22 @@ def beep():
 # Note: biases must sum to 100, or the input is ignored and you will get a plain course
 class CallList:
 
-	def __init__(self, touchBiasArray):
-		if touchBiasArray:
+	def __init__(self, tbString):
+		if tbString != '':
+			touchBiasArray = list(map(int, tbString.split(',')))
+			if sum(touchBiasArray) != 100:
+				printError('Error: Touch call ratios must add up to 100')
 			self.touchCalls = 'p' * touchBiasArray[0] + 'b' * touchBiasArray[1] + 's' * touchBiasArray[2]
+		else:
+			self.touchCalls = 'p'
+
 
 	def selectRandom(self):
-		try:
+		# try:
 			call = random.choice(self.touchCalls)
 			return 'plain' if call == 'p' else 'bob' if call == 'b' else 'single'
-		except:
-			return 'plain'
-
+		# except:
+		# 	return 'plain'
 
 
 # MethodsList
@@ -59,9 +69,23 @@ class MethodsList:
 
 	def __init__(self, methodsString):
 		self.methodsArray = self.getMethods(methodsString)
+		self.stage = self.methodsArray[0].stage
+		self.nBells = self.methodsArray[0].nBells
 		self.outputString = self.outputString()
 		self.nMethods = len(self.methodsArray)
-		self.check()
+		self.validate()
+	
+	def validateWorkingBell(self, wb):
+		if not wb.isnumeric():
+			printError('Error: Working bell outside limits')
+		elif int(wb) < 2 or int(wb) > self.nBells:
+			printError('Error: Working bell outside limits')
+		else:
+			return int(wb)
+   
+	def randomWorkingBell(self):
+		return np.random.randint(2,self.nBells+1)
+
 
 	def selectRandom(self):
 		return random.choice(self.methodsArray)
@@ -84,14 +108,15 @@ class MethodsList:
 				print('WARNING: Could not find method with abbreviation ' + c)
 		return ams
 
-	def check(self):
+	def validate(self):
 		
-		if all(x.stage==self.methodsArray[0].stage for x in self.methodsArray):
-			return	
+		if not all(x.stage==self.stage for x in self.methodsArray):
+			printError('ERROR: All methods must have the same stage (number of bells)')
+		elif len(self.methodsArray) == 0:
+			printError('ERROR: No methods found')
 		else:
-			beep()
-			print('ERROR: All methods must have the same stage (number of bells)')
-			sys.exit()
+			return
+
 
 				
 
@@ -145,16 +170,6 @@ class Method:
 	def applyBobOrSingle(self, pn):
 		pna = self.__pnArray(pn)
 		return self.plain[:-len(pna)] + pna
-
-	# pnFullLead
-	# Combine the PN for standard lead with the desired lead-end
-	# def pnFullLead(self, call):
-	# 	return self.pnLead + [getattr(self, call)]
-
-	# pnLeadEnd
-	# Converts the lead-end place notation into an array of integers, eg '12' --> [1, 2]
-	# def pnLeadEnd(self, pn):
-	# 	return list(map(int, pn))
 
 	# pnArray
 	# Converts pn string to array
@@ -217,7 +232,7 @@ class Method:
 
 		beforeBell = 0
 		afterBell = 0
-		if optShowCourseBells:
+		if options.showCourseBells:
 			coursingOrder = [7,5,3,2,4,6,8]
 			indx = coursingOrder.index(wb)
 			if indx == 0:
@@ -230,7 +245,7 @@ class Method:
 				beforeBell = coursingOrder[indx-1]
 				afterBell = coursingOrder[indx+1]
 
-		seq = '1' if optShowTreble else '.'
+		seq = '1' if options.showTreble else '.'
 
 		for i in range(2, self.nBells + 1):
 			if i == wb:
@@ -322,10 +337,8 @@ class Lead():
 						beep()
 
 				elif ks == keys.CTRL_C:
-					beep()
 					print(style.RESET)
-					print("SESSION CANCELLED")
-					sys.exit()
+					printError("SESSION CANCELLED")
 
 		for i, row in enumerate(self.rows):
 			pos = row.pos()
@@ -347,7 +360,7 @@ class Row():
 		self.seq = seq
 		self.rowNumber = rowNumber
 		self.leadLength = method.leadLength
-		self.touchCallRow = self.leadLength - method.callOffset - 2
+		self.touchCallRow = self.leadLength - method.callOffset - 3
 		self.methodCallRow = self.touchCallRow + 1
 		self.annotationRow = self.leadLength
 		self.isLeadEnd = rowNumber == self.leadLength - 1
@@ -365,7 +378,7 @@ class Row():
 		pad = ' '
 		outp += style.GREY + self.stroke + '   '
 
-		if self.isLeadEnd and optAnnotations:
+		if self.isLeadEnd and options.showLeadend:
 			outp += style.UNDERLINE
 
 		for c in self.seq:
@@ -377,7 +390,7 @@ class Row():
 				outp += style.BLUE + c + pad
 
 		outp += style.RESET + self.callString(tc, mc)
-		if optPrintOneRow:
+		if options.printOneRow:
 			print("\033[F\033[J", end="")
 		print(outp + '                              ')
 
