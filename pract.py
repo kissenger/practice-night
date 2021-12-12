@@ -26,9 +26,13 @@ os.system('')
 # 		# else:
 # 			# touchList = CallList(touchBias)
 
-
-ms = input('Enter method(s): ')
-methodsList = MethodsList(ms)
+while True:
+	ms = input('Enter method(s) or type \'List\': ')
+	if ms == "List":
+		listMethods()
+	else:
+		methodsList = MethodsList(ms)
+		break
 
 wb = input('Enter starting bell [random]: ')
 if wb != '':
@@ -36,7 +40,7 @@ if wb != '':
 else:
 	workingBell = methodsList.randomWorkingBell()
 
-tb = input('Enter touch calls [plain course]: ')
+tb = input('Enter touch calls or \'r\' for random [plain course]: ')
 touchList = CallList(tb)
 
 options.showTreble = input('Show treble [No]: ') in ('y', 'Y')

@@ -46,10 +46,17 @@ class CallList:
 
 	def __init__(self, tbString):
 		if tbString != '':
-			touchBiasArray = list(map(int, tbString.split(',')))
-			if sum(touchBiasArray) != 100:
-				printError('Error: Touch call ratios must add up to 100')
-			self.touchCalls = 'p' * touchBiasArray[0] + 'b' * touchBiasArray[1] + 's' * touchBiasArray[2]
+			if tbString in ['r', 'R']:
+				a = np.random.randint(0,100)
+				b = np.random.randint(0,100-a)
+				c = 100 - a - b
+				print('Warning: Randomly selected ' + str(a) + '% plain, ' + str(b) + '% bobs, ' + str(c) + '% singles')
+				touchBiasArray = [a,b,c]
+			else:
+				touchBiasArray = list(map(int, tbString.split(',')))
+				if sum(touchBiasArray) != 100:
+					printError('Error: Touch call ratios must add up to 100')
+			self.touchCalls = 'p' * touchBiasArray[0] + 'b' * touchBiasArray[1] + 's' * touchBiasArray[2] 
 		else:
 			self.touchCalls = 'p'
 
@@ -61,6 +68,9 @@ class CallList:
 		# except:
 		# 	return 'plain'
 
+def listMethods():
+	for method in methodsLib:
+		print(method['abbr'] + ' = ' + method['name'] + ' ' + method['stage'])
 
 # MethodsList
 # Class to manage the methods requested by the user
@@ -216,10 +226,10 @@ class Method:
 		return outArr
 
 	def nBells(self, stage):
-		if stage == 'major': return 8
-		if stage == 'triples': return 7
-		if stage == 'minor': return 6
-		if stage == 'doubles': return 5
+		if stage == 'Major': return 8
+		if stage == 'Triples': return 7
+		if stage == 'Minor': return 6
+		if stage == 'Doubles': return 5
 
 	def leadLength(self):
 		return len(self.plain) + 1
